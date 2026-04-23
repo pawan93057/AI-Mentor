@@ -1,0 +1,117 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+
+body {
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #e5ddd5; /* WhatsApp-like background */
+    background-image: url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png");
+    background-repeat: repeat;
+}
+
+/* Use dynamic viewport height for mobile browsers */
+.app-height {
+    height: 100vh;
+    height: 100dvh;
+}
+
+.message-bubble {
+    max-width: 85%;
+    position: relative;
+    box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+}
+
+@media (max-width: 640px) {
+    .message-bubble {
+        max-width: 90%;
+    }
+}
+
+.mentor-bubble {
+    background-color: #ffffff;
+    border-radius: 0 12px 12px 12px;
+}
+
+.user-bubble {
+    background-color: #dcf8c6;
+    border-radius: 12px 0 12px 12px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+
+#login-overlay, #image-modal, #settings-modal {
+    backdrop-filter: blur(8px);
+    z-index: 100;
+}
+
+.dot-flashing {
+    position: relative;
+    width: 6px;
+    height: 6px;
+    border-radius: 5px;
+    background-color: #94a3b8;
+    animation: dot-flashing 1s infinite linear alternate;
+    animation-delay: 0.5s;
+}
+.dot-flashing::before, .dot-flashing::after {
+    content: ""; display: inline-block; position: absolute; top: 0;
+    width: 6px; height: 6px; border-radius: 5px; background-color: #94a3b8;
+    animation: dot-flashing 1s infinite linear alternate;
+}
+.dot-flashing::before { left: -12px; animation-delay: 0s; }
+.dot-flashing::after { left: 12px; animation-delay: 1s; }
+
+@keyframes dot-flashing {
+    0% { background-color: #94a3b8; }
+    50%, 100% { background-color: #e2e8f0; }
+}
+
+/* Modal Animation */
+.modal-scale {
+    transition: transform 0.3s ease-out;
+    transform: scale(0.9);
+}
+#image-modal.active .modal-scale, #settings-modal.active .modal-content {
+    transform: scale(1);
+}
+
+/* Workflow Graph Styles */
+.flow-node {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 100%;
+}
+.flow-arrow {
+    width: 2px;
+    height: 15px;
+    background: #cbd5e1;
+    margin: 0 auto;
+}
+.tech-pill {
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+/* Accordion rotation */
+.accordion-header.active svg {
+    transform: rotate(180deg);
+}
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease;
+}
+.accordion-content.active {
+    max-height: 1000px; 
+    padding-bottom: 1rem;
+}
