@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mentor - Your Wise Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e5ddd5; /* WhatsApp-like background */
+            background-image: url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png");
+            background-repeat: repeat;
+        }
+
+        .chat-container {
+            height: calc(100vh - 140px);
+        }
+
+        .message-bubble {
+            max-width: 85%;
+            position: relative;
+            box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+        }
+
+        .mentor-bubble {
+            background-color: #ffffff;
+            border-radius: 0 12px 12px 12px;
+        }
+
+        .user-bubble {
+            background-color: #dcf8c6;
+            border-radius: 12px 0 12px 12px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 10px; }
+
+        #login-overlay, #image-modal, #settings-modal {
+            backdrop-filter: blur(8px);
+            z-index: 100;
+        }
+
+        .dot-flashing {
+            position: relative;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: #94a3b8;
+            animation: dot-flashing 1s infinite linear alternate;
+            animation-delay: 0.5s;
+        }
+        .dot-flashing::before, .dot-flashing::after {
+            content: ""; display: inline-block; position: absolute; top: 0;
+            width: 6px; height: 6px; border-radius: 5px; background-color: #94a3b8;
+            animation: dot-flashing 1s infinite linear alternate;
+        }
+        .dot-flashing::before { left: -12px; animation-delay: 0s; }
+        .dot-flashing::after { left: 12px; animation-delay: 1s; }
+
+        @keyframes dot-flashing {
+            0% { background-color: #94a3b8; }
+            50%, 100% { background-color: #e2e8f0; }
+        }
+
+        /* Modal Animation */
+        .modal-scale {
+            transition: transform 0.3s ease-out;
+            transform: scale(0.9);
+        }
+        #image-modal.active .modal-scale, #settings-modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        /* Workflow Graph Styles */
+        .flow-node {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        .flow-arrow {
+            width: 2px;
+            height: 15px;
+            background: #cbd5e1;
+            margin: 0 auto;
+        }
+        .tech-pill {
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+        }
+
+        /* Accordion rotation */
+        .accordion-header.active svg {
+            transform: rotate(180deg);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease;
+        }
+        .accordion-content.active {
+            max-height: 1000px; /* Large enough to fit content */
+            padding-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95">
+            <div class="bg-[#075e54] text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold">Project Documentation</h3>
+                <button onclick="toggleSettings()" class="hover:bg-white/10 p-1 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-4 space-y-2 overflow-y-auto max-h-[80vh]">
+                
+                <!-- Section: API Config (NEW) -->
+                <div class="border-b border-gray-100">
+                    <button class="accordion-header w-full py-4 flex justify-between items-center text-left focus:outline-none" onclick="toggleAccordion(this)">
+                        <span class="text-emerald-700 font-bold text-xs uppercase tracking-wider">API Configuration</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="space-y-3 px-1">
+                            <p class="text-gray-500 text-[11px]">Update your Gemini API key here if your current one is invalid or expired.</p>
+                            <div class="flex gap-2">
+                                <input type="password" id="update-api-key-input" placeholder="Enter new API Key..." 
+                                    class="flex-grow px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-emerald-500">
+                                <button id="update-key-btn" class="bg-emerald-600 text-white text-xs px-4 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors">Update</button>
+                            </div>
+                            <p id="update-success-msg" class="hidden text-emerald-600 text-[10px] font-bold">✓ API Key updated successfully!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: About -->
+                <div class="border-b border-gray-100">
+                    <button class="accordion-header w-full py-4 flex justify-between items-center text-left focus:outline-none" onclick="toggleAccordion(this)">
+                        <span class="text-emerald-700 font-bold text-xs uppercase tracking-wider">Purpose & Scope</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <p class="text-gray-600 text-sm leading-relaxed px-1">
+                            The <strong>AI Mentor</strong> is a full-stack serverless web application designed to demonstrate the integration of Large Language Models (LLMs) into real-time communication interfaces. It aims to solve the "empathy gap" in standard AI assistants by employing <strong>System Prompt Engineering</strong> to force the AI into supportive, multifaceted personas (Counselor, Medical Sage, Guardian).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Section: Tech Stack -->
+                <div class="border-b border-gray-100">
+                    <button class="accordion-header w-full py-4 flex justify-between items-center text-left focus:outline-none" onclick="toggleAccordion(this)">
+                        <span class="text-emerald-700 font-bold text-xs uppercase tracking-wider">Technical Stack</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-1">
+                        <div class="flex flex-wrap gap-2">
+                            <span class="tech-pill">HTML5/CSS3</span>
+                            <span class="tech-pill">Tailwind CSS (UI Framework)</span>
+                            <span class="tech-pill">Vanilla JavaScript (ES6+)</span>
+                            <span class="tech-pill">Google Gemini Pro API</span>
+                            <span class="tech-pill">RESTful Architecture</span>
+                            <span class="tech-pill">LocalStorage (State Persistence)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Workflow -->
+                <div class="border-b border-gray-100">
+                    <button class="accordion-header w-full py-4 flex justify-between items-center text-left focus:outline-none" onclick="toggleAccordion(this)">
+                        <span class="text-emerald-700 font-bold text-xs uppercase tracking-wider">System Architecture & Workflow</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-1">
+                        <div class="bg-slate-50 p-5 rounded-xl border border-slate-100 space-y-1">
+                            <div class="flex flex-col items-center">
+                                <div class="flow-node bg-blue-500 text-white border border-blue-600">CLIENT: UI Input Capture</div>
+                                <div class="flow-arrow"></div>
+                                <div class="flow-node bg-slate-100 text-slate-700 border border-slate-200">VALIDATION: API Key Integrity Check (LocalStorage)</div>
+                                <div class="flow-arrow"></div>
+                                <div class="flow-node bg-slate-100 text-slate-700 border border-slate-200">PRE-PROCESSING: System Instructions Injection</div>
+                                <div class="flow-arrow"></div>
+                                <div class="flow-node bg-amber-500 text-white border border-amber-600">NETWORK: Fetch Request to Google v1beta API</div>
+                                <div class="flow-arrow"></div>
+                                <div class="flow-node bg-slate-100 text-slate-700 border border-slate-200">LOGIC: Exponential Backoff Retry Mechanism</div>
+                                <div class="flow-arrow"></div>
+                                <div class="flow-node bg-indigo-500 text-white border border-indigo-600">LLM ENGINE: Gemini 2.5 Flash Lite Inference</div>
+                                <div class="flow-arrow"></div>
+                                <div class="flow-node bg-emerald-500 text-white border border-emerald-600">UI RENDER: DOM Sync & Auto-Scroll</div>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-gray-500 mt-3 italic">
+                            *The project utilizes an asynchronous event-driven architecture to ensure non-blocking UI interactions during heavy LLM processing.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Section: Creators -->
+                <div class="border-b border-gray-100">
+                    <button class="accordion-header w-full py-4 flex justify-between items-center text-left focus:outline-none" onclick="toggleAccordion(this)">
+                        <span class="text-emerald-700 font-bold text-xs uppercase tracking-wider">Project Authors</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-1">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                                <p class="text-[10px] text-emerald-600 font-bold uppercase">Lead Developer</p>
+                                <p class="text-sm font-bold text-gray-800">Pawan Kumar Chauhan</p>
+                            </div>
+                            <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                                <p class="text-[10px] text-emerald-600 font-bold uppercase">Research & UI Lead</p>
+                                <p class="text-sm font-bold text-gray-800">Poonam Yadav</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logout -->
+                <div class="pt-6">
+                    <button id="logout-btn-real" class="w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 transition-colors">
+                        Logout & Clear Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="image-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 cursor-pointer" onclick="closeImageModal()">
+        <img src="https://i.ibb.co/xtYX7tZ5/ai-Mentor.webp" alt="AI Mentor Large" class="modal-scale max-w-full max-h-[80vh] rounded-2xl shadow-2xl border-4 border-white/20">
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform transition-all">
+            <div class="text-center mb-6">
+                <div class="w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center overflow-hidden mx-auto mb-4 shadow-lg border-2 border-emerald-500">
+                    <img src="https://i.ibb.co/xtYX7tZ5/ai-Mentor.webp" alt="AI Mentor" class="w-full h-full object-cover">
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Welcome, Friend</h2>
+                <p class="text-gray-500 text-sm mt-2">Please enter your Gemini API Key to begin your journey with the AI Mentor.</p>
+            </div>
+            <div class="space-y-4">
+                <input type="password" id="api-key-input" placeholder="Enter API Key (AIza...)" 
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                <button id="login-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition-colors shadow-md">
+                    Start Mentorship
+                </button>
+                <p class="text-[10px] text-center text-gray-400">Your key is stored locally in your browser.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-[#075e54] text-white py-3 px-4 shadow-md flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center overflow-hidden shadow-inner cursor-pointer hover:opacity-90 transition-opacity" onclick="openImageModal()">
+                <img src="https://i.ibb.co/xtYX7tZ5/ai-Mentor.webp" alt="AI Mentor" class="w-full h-full object-cover">
+            </div>
+            <div>
+                <h1 class="font-bold leading-tight">AI Mentor</h1>
+                <p class="text-[11px] text-emerald-200">Always here for you • Online</p>
+            </div>
+        </div>
+        <button onclick="toggleSettings()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+    </header>
+
+    <!-- Chat View -->
+    <main class="flex-grow overflow-hidden relative">
+        <div id="chat-messages" class="chat-container overflow-y-auto px-4 py-6 flex flex-col gap-4 max-w-3xl mx-auto">
+            <!-- Mentor First Message -->
+            <div class="flex items-start">
+                <div class="message-bubble mentor-bubble p-3 text-sm text-gray-800">
+                    <p class="font-semibold text-emerald-700 text-[10px] mb-1">AI Mentor</p>
+                    Greetings, my friend. I am here to listen, guide, and support you. Whether you need a doctor's perspective, a parent's warmth, or a friend's ear—I am at your service. What is on your mind?
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing -->
+        <div id="typing-indicator" class="hidden absolute bottom-2 left-0 right-0 max-w-3xl mx-auto px-4">
+            <div class="bg-white/90 backdrop-blur inline-flex items-center gap-4 px-4 py-3 rounded-full shadow-sm border border-gray-200">
+                <div class="dot-flashing"></div>
+                <span class="text-xs text-gray-500 font-medium">Mentor is thinking...</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="bg-[#f0f2f5] p-3 border-t border-gray-300">
+        <div class="max-w-3xl mx-auto flex items-end gap-2">
+            <div class="flex-grow bg-white rounded-2xl shadow-sm px-4 py-1">
+                <textarea id="user-input" rows="1" placeholder="Type a message..." 
+                    class="w-full py-3 text-sm outline-none resize-none max-h-32 text-gray-700"></textarea>
+            </div>
+            <button id="send-btn" class="bg-[#00a884] hover:bg-[#008f72] text-white w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"></path></svg>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const loginOverlay = document.getElementById('login-overlay');
+        const imageModal = document.getElementById('image-modal');
+        const settingsModal = document.getElementById('settings-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtnReal = document.getElementById('logout-btn-real');
+        
+        // Update key elements
+        const updateKeyInput = document.getElementById('update-api-key-input');
+        const updateKeyBtn = document.getElementById('update-key-btn');
+        const updateSuccessMsg = document.getElementById('update-success-msg');
+
+        const MODEL_NAME = "gemini-2.5-flash-lite";
+        
+        const SYSTEM_PROMPT = `You are a world-class AI Mentor. 
+        Your personality: 
+        1. Wise and knowledgeable like a senior scholar or doctor.
+        2. Compassionate and warm like a loving parent.
+        3. Accessible and relatable like a best friend.
+        4. Always polite, patient, and professional.
+        
+        Your mission:
+        - When someone is in trouble, provide calm, logical, and practical solutions.
+        - Validate their feelings first, then offer guidance.
+        - Use helpful metaphors and encouraging language.
+        - If a medical or psychological question is asked, provide general wisdom but advise seeing a specialist if critical.
+        - Keep responses concise but impactful.`;
+
+        let savedApiKey = localStorage.getItem('mentor_api_key');
+
+        function checkAuth() {
+            if (!savedApiKey) {
+                loginOverlay.classList.remove('hidden');
+            } else {
+                loginOverlay.classList.add('hidden');
+            }
+        }
+
+        // Modals
+        function openImageModal() {
+            imageModal.classList.remove('hidden');
+            setTimeout(() => imageModal.classList.add('active'), 10);
+        }
+
+        function closeImageModal() {
+            imageModal.classList.remove('active');
+            setTimeout(() => imageModal.classList.add('hidden'), 300);
+        }
+
+        function toggleSettings() {
+            if (settingsModal.classList.contains('hidden')) {
+                settingsModal.classList.remove('hidden');
+                setTimeout(() => settingsModal.classList.add('active'), 10);
+            } else {
+                settingsModal.classList.remove('active');
+                setTimeout(() => {
+                    settingsModal.classList.add('hidden');
+                    updateSuccessMsg.classList.add('hidden'); // Reset message on close
+                    updateKeyInput.value = '';
+                }, 300);
+            }
+        }
+
+        // Accordion Logic
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            const allHeaders = document.querySelectorAll('.accordion-header');
+            const allContents = document.querySelectorAll('.accordion-content');
+
+            allHeaders.forEach(h => { if(h !== header) h.classList.remove('active') });
+            allContents.forEach(c => { if(c !== content) c.classList.remove('active') });
+
+            header.classList.toggle('active');
+            content.classList.toggle('active');
+        }
+
+        // Initial Login
+        loginBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('mentor_api_key', key);
+                savedApiKey = key;
+                checkAuth();
+            }
+        });
+
+        // Update Key Logic (from Settings)
+        updateKeyBtn.addEventListener('click', () => {
+            const newKey = updateKeyInput.value.trim();
+            if (newKey) {
+                localStorage.setItem('mentor_api_key', newKey);
+                savedApiKey = newKey;
+                updateSuccessMsg.classList.remove('hidden');
+                updateKeyInput.value = '';
+                
+                // Hide message after 3 seconds
+                setTimeout(() => {
+                    updateSuccessMsg.classList.add('hidden');
+                }, 3000);
+            }
+        });
+
+        logoutBtnReal.addEventListener('click', () => {
+            localStorage.removeItem('mentor_api_key');
+            savedApiKey = null;
+            location.reload();
+        });
+
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        function appendMessage(role, text, isError = false) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = `message-bubble p-3 text-sm ${role === 'user' ? 'user-bubble' : 'mentor-bubble'} ${isError ? 'border-2 border-red-200 bg-red-50' : ''}`;
+            
+            if (role === 'ai') {
+                const header = isError ? '⚠️ SYSTEM ERROR' : 'AI Mentor';
+                const headerColor = isError ? 'text-red-600' : 'text-emerald-700';
+                bubble.innerHTML = `<p class="font-bold ${headerColor} text-[10px] mb-1 uppercase tracking-wider">${header}</p>${text.replace(/\n/g, '<br>')}`;
+            } else {
+                bubble.innerText = text;
+            }
+
+            wrapper.appendChild(bubble);
+            chatMessages.appendChild(wrapper);
+            chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+        }
+
+        async function callGemini(prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${savedApiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
+            };
+
+            const maxRetries = 5;
+            let delay = 1000;
+
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Detailed Error Handling
+                    if (!response.ok) {
+                        const errorJson = await response.json().catch(() => ({}));
+                        const errorCode = response.status;
+                        const errorMessage = errorJson.error?.message || "Unknown API Error";
+
+                        if (errorCode === 401 || errorCode === 403) {
+                            throw new Error(`[INVALID_KEY]: The API Key you provided is either incorrect, expired, or restricted. Please check your settings and try a different key.`);
+                        } else if (errorCode === 429) {
+                            throw new Error(`[RATE_LIMIT]: You have reached the usage limit for this API Key. Please wait a minute or upgrade your plan in Google AI Studio.`);
+                        } else if (errorCode === 400) {
+                            throw new Error(`[BAD_REQUEST]: The request was malformed. Message: ${errorMessage}`);
+                        } else {
+                            throw new Error(`[API_ERROR ${errorCode}]: ${errorMessage}`);
+                        }
+                    }
+
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "I'm reflecting on your words. Could you say that again?";
+
+                } catch (error) {
+                    // Don't retry if it's a Key error or Rate Limit
+                    if (error.message.includes('INVALID_KEY') || error.message.includes('RATE_LIMIT')) {
+                        throw error;
+                    }
+
+                    if (i === maxRetries - 1) throw error;
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        async function handleSend() {
+            const text = userInput.value.trim();
+            if (!text || !savedApiKey) return;
+
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            appendMessage('user', text);
+            
+            typingIndicator.classList.remove('hidden');
+            chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+
+            try {
+                const response = await callGemini(text);
+                typingIndicator.classList.add('hidden');
+                appendMessage('ai', response);
+            } catch (error) {
+                typingIndicator.classList.add('hidden');
+                const errorText = error.message.startsWith('[') 
+                    ? error.message.split(']:')[1].trim() 
+                    : error.message;
+                
+                appendMessage('ai', `Forgive me, but I've encountered a technical issue:\n\n<b>${errorText}</b>\n\nYou can update your API Key by clicking the ⚙️ Settings icon at the top right.`, true);
+            }
+        }
+
+        sendBtn.addEventListener('click', handleSend);
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+
+        checkAuth();
+    </script>
+</body>
+</html>
