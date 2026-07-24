@@ -13,7 +13,7 @@ const updateKeyInput = document.getElementById('update-api-key-input');
 const updateKeyBtn = document.getElementById('update-key-btn');
 const updateSuccessMsg = document.getElementById('update-success-msg');
 
-const MODEL_NAME = "gemini-2.5-flash-lite";
+const MODEL_NAME = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `You are a world-class AI Mentor. 
 Your personality: 
